@@ -1,0 +1,58 @@
+import requests 
+from bs4 import BeautifulSoup 
+from csv import writer      
+import pandas as pd
+
+Zip = '21113'
+Min = 300000 
+Max = 400000
+
+with open('path', 'w', newline='',encoding="utf-8") as csv_file:
+    csv_writer = writer(csv_file)
+    headers = ['Address','Sale Date','Close Price','Buyer','Seller','Property Type','Neighborhood','County','Beds','Full/Half Baths','Sq. Feet','Lot Size','Year Built','URL']
+    csv_writer.writerow(headers)
+    for i in range(1,1000000):
+        try:
+            url = ('http://www.washingtonpost.com/homesales/detail/MRIS' + str(i))
+            #url = ('http://www.washingtonpost.com/homesales/detail/LPS' + str(i))
+            r = requests.get(url)
+            soup = BeautifulSoup(r.text, 'html.parser')
+            check = soup.find_all('span', attrs={'class':'detailsAddress'})[1].text
+            try:
+                new = soup.find_all('ul',attrs={'class':'taxData lightGrayBack saleHistory'})[0]
+                price = new.find_all('li')[1].text   
+            except Exception:
+                price = soup.find_all('span', attrs={'class':'floatLeft'})[3].text
+            price = price.replace('$','')
+            price = price.replace(',','')
+            price = float(price)
+              
+            if (Zip in check and Min <= price <= Max):
+                address = soup.find('span', attrs={'class':'detailsAddress'}).text + soup.find_all('span', attrs={'class':'detailsAddress'})[1].text
+                try:
+                    latest = soup.find_all('ul',attrs={'class':'taxData lightGrayBack saleHistory'})[0]
+                    saledate = latest.find_all('li')[0].text
+                    closeprice = latest.find_all('li')[1].text
+                except Exception:
+                    saledate = soup.find_all('span', attrs={'class':'floatLeft'})[1].text
+                    closeprice = soup.find_all('span', attrs={'class':'floatLeft'})[3].text
+                try:
+                    buyer = soup.find('ul',class_='buyers').text.replace('\n','')
+                    seller = soup.find('ul',class_='sellers').text.replace('\n','')
+                except Exception:    
+                    buyer = soup.find_all('span', attrs={'class':'floatLeft'})[5].text
+                    seller = soup.find_all('span', attrs={'class':'floatLeft'})[7].text
+                #sellbroker = soup.find_all('span', attrs={'class':'floatLeft'})[9].text
+                #buybroker = soup.find_all('span', attrs={'class':'floatLeft'})[11].text
+                proptype = soup.find_all('span', attrs={'class':'floatLeft'})[13].text
+                neighbor = soup.find_all('span', attrs={'class':'floatLeft'})[15].text
+                county = soup.find_all('span', attrs={'class':'floatLeft'})[17].text
+                beds = soup.find_all('span', attrs={'class':'floatLeft'})[19].text
+                bath = soup.find_all('span', attrs={'class':'floatLeft'})[21].text
+                sqft = soup.find_all('span', attrs={'class':'floatLeft'})[23].text
+                lot = soup.find_all('span', attrs={'class':'floatLeft'})[25].text
+                built = soup.find_all('span', attrs={'class':'floatLeft'})[27].text
+                link = url
+                csv_writer.writerow([address,saledate,closeprice,buyer,seller,proptype,neighbor,county,beds,bath,sqft,lot,built,link])
+        except Exception:
+            print('error in ' + url)
